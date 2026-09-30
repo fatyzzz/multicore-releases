@@ -1,0 +1,51 @@
+{
+  "name": "MultiCore",
+  "featured": false,
+  "svgIconKey": "Download",
+  "blocks": [
+    {
+      "title": { "ru": "Установите MultiCore", "en": "Install MultiCore" },
+      "description": {
+        "ru": "Скачайте установщик и запустите его. Если SmartScreen предупредит — «Подробнее» → «Выполнить в любом случае».",
+        "en": "Download and run the installer. If SmartScreen warns you, choose More info → Run anyway."
+      },
+      "svgIconKey": "Download",
+      "svgIconColor": "cyan",
+      "buttons": [
+        {
+          "link": "https://github.com/fatyzzz/multicore-releases/releases/latest/download/MultiCore-Setup-x64.exe",
+          "type": "external",
+          "text": { "ru": "Скачать для Windows", "en": "Download for Windows" },
+          "svgIconKey": "Download"
+        }
+      ]
+    },
+    {
+      "title": { "ru": "Добавьте подписку", "en": "Add the subscription" },
+      "description": {
+        "ru": "Нажмите кнопку и подтвердите добавление в MultiCore.",
+        "en": "Press the button and confirm in MultiCore."
+      },
+      "svgIconKey": "Plus",
+      "svgIconColor": "teal",
+      "buttons": [
+        {
+          "link": "multicore://add/{{SUBSCRIPTION_LINK}}",
+          "type": "subscriptionLink",
+          "text": { "ru": "Добавить в MultiCore", "en": "Add to MultiCore" },
+          "svgIconKey": "Plus"
+        }
+      ]
+    },
+    {
+      "title": { "ru": "Подключитесь", "en": "Connect" },
+      "description": {
+        "ru": "Нажмите на щит в MultiCore. Windows один раз спросит права администратора для TUN.",
+        "en": "Press the shield in MultiCore. Windows asks for administrator rights once for TUN."
+      },
+      "svgIconKey": "Check",
+      "svgIconColor": "green",
+      "buttons": []
+    }
+  ]
+}

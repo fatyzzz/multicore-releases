@@ -1,0 +1,24 @@
+[
+  {
+    "name": "MultiCore",
+    "description": "MultiCore: Mihomo YAML по шаблону MultiCore",
+    "enabled": true,
+    "operator": "AND",
+    "conditions": [
+      { "headerName": "user-agent", "operator": "EQUALS", "value": "multicore-mihomo", "caseSensitive": true }
+    ],
+    "responseType": "MIHOMO",
+    "responseModifications": { "subscriptionTemplate": "MultiCore" }
+  },
+  {
+    "name": "MultiCore: без Xray",
+    "description": "MultiCore: bundle и Xray не нужны, быстрый 404 вместо base64",
+    "enabled": true,
+    "operator": "OR",
+    "conditions": [
+      { "headerName": "user-agent", "operator": "EQUALS", "value": "multicore-xray", "caseSensitive": true },
+      { "headerName": "user-agent", "operator": "EQUALS", "value": "multicore-json-massive", "caseSensitive": true }
+    ],
+    "responseType": "STATUS_CODE_404"
+  }
+]
