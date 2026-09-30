@@ -1,0 +1,187 @@
+# MultiCore subscription server requirements (llms-full.txt)
+
+> Exactly what a subscription server must do to serve the MultiCore VPN client (1.0.1+), including a server placed in front of a Remnawave panel. Only MultiCore-specific behaviour is covered: generic panel features (users, billing, other clients) are out of scope. Hand this file to a developer or an LLM as the spec.
+
+Human docs (Russian): docs/providers.md, docs/remnawave.md in https://github.com/fatyzzz/multicore-releases.
+
+## 1. Answer three User-Agents on the same URL
+
+MultiCore requests the user's subscription URL and selects the representation by the exact `User-Agent`:
+
+| User-Agent | Must return (2xx) |
+|---|---|
+| `multicore-json-massive` | JSON array of exactly two elements: `["<Mihomo YAML as a JSON string>", {<Xray JSON object>}]`. Content-Type `application/vnd.multicore.bundle+json; charset=utf-8` |
+| `multicore-mihomo` | One complete Mihomo YAML mapping (raw UTF-8 YAML, not JSON, not Base64). Content-Type `application/yaml; charset=utf-8` |
+| `multicore-xray` | One complete Xray JSON **object** — never an array, never a JSON string. Content-Type `application/json; charset=utf-8` |
+
+Client behaviour the server must account for:
+
+- `multicore-json-massive` is sent first. A 2xx body whose first non-whitespace byte is `[` is final: the client parses it and makes no further request, even if it is invalid. Serve the bundle correctly or do not serve it (return 404).
+- Otherwise the client sends `multicore-mihomo` and `multicore-xray` **in parallel**, so both must come from the same snapshot (see section 5).
+- Every other User-Agent belongs to other clients; MultiCore never sends them.
+
+## 2. Pick one of two shapes
+
+**Mihomo-only.** The Mihomo YAML uses only native Mihomo proxies (VLESS/Reality, Trojan, Shadowsocks, Hysteria2, TUIC, ...), and no `socks5` proxy on `127.0.0.1`. Then the Xray half is optional: the client accepts a failed / 404 / non-object `multicore-xray` response and runs an idle Xray. Serving only `multicore-mihomo` is enough.
+
+**Bridged (dual-core).** Some servers need transports Mihomo does not implement, so Xray carries them. For each such server the server must emit a matched triple:
+
+Mihomo proxy:
+```yaml
+- name: "🇳🇱 Netherlands"      # display name, unique
+  type: socks5
+  server: 127.0.0.1
+  port: 31001                  # unique per subscription
+  udp: true
+```
+
+Xray inbound + one routing rule into that server's outbound:
+```json
+{ "tag": "🇳🇱 Netherlands", "listen": "127.0.0.1", "port": 31001, "protocol": "socks",
+  "settings": { "auth": "noauth", "udp": true, "ip": "127.0.0.1" } }
+{ "type": "field", "inboundTag": ["🇳🇱 Netherlands"], "outboundTag": "mc-nl-1" }
+```
+
+Rules for the bridged shape:
+
+- Any Mihomo `socks5` proxy on `127.0.0.1` makes the subscription bridged; the Xray object is then mandatory and must contain an inbound on every such port.
+- Inbounds listen on `127.0.0.1` only; ports unique, from a fixed high range (e.g. 31001–31999).
+- Exactly one routing rule per bridge, before any catch-all rule.
+- The server alone owns the mapping `display name → port → inbound tag → outbound tag`; the client does not build or check it semantically.
+- No TUN, DNS policy or process routing in Xray; Mihomo owns those. Keep `direct`/`block` outbounds if needed.
+- The client considers Xray ready only when every loopback inbound accepts connections; a bridged Xray object without loopback inbounds never becomes ready.
+
+Native Mihomo proxies and bridges can be mixed in one YAML and in the same groups.
+
+## 3. Mihomo YAML must be the complete client config
+
+- YAML mapping (must not start with `{` or `[`), every proxy and group has a unique `name` and a `type`.
+- Contains `tun` (`enable: true`, `auto-route: true`, `auto-detect-interface: true`, `dns-hijack: [any:53]`), `dns` (fake-ip recommended, with `proxy-server-nameserver` so server hostnames resolve outside the tunnel), `proxy-groups`, `rules` ending in `MATCH`.
+- `allow-lan: false`; no LAN-reachable ports.
+- Do not rely on these keys, the client overrides or removes them: `external-controller*`, `secret`, `external-ui*`, `cors`, `external-doh-server`, `global-client-fingerprint`, `store-selected`, `tun.device`. In its no-TUN mode the client also sets `tun.enable`, `mixed-port`, `bind-address`, `allow-lan`.
+- `url-test` groups are shown as "Auto → <current node>"; a top `select` group containing the `url-test` group plus all servers is the recommended layout.
+- Reference template: docs/remnawave/multicore-mihomo-template.yaml.
+
+## 4. Headers
+
+Request headers the server receives on every config request (use for device limits):
+
+| Header | Value |
+|---|---|
+| `x-hwid` | Stable per-installation id, uppercase UUID (36 chars) |
+| `x-device-os` | `windows` / `linux` |
+| `x-ver-os` | OS version string |
+| `x-device-model` | Device model (`Windows PC` / `Linux PC` fallback) |
+
+Response headers MultiCore reads (send the same set on all three representations):
+
+| Header | Format |
+|---|---|
+| `subscription-userinfo` | `upload=<bytes>; download=<bytes>; total=<bytes>; expire=<unix s>`; `0` = unlimited |
+| `profile-title` | plain or `base64:<b64>`, ≤128 chars |
+| `profile-update-interval` | integer hours (default 6, clamped 15 min…30 days) |
+| `profile-web-page-url` | http/https |
+| `support-url` | http/https/tg |
+| `<vendor>-servicelogo` | https image URL; vendor prefix required (e.g. `myvpn-servicelogo`) |
+| `announce` | plain or `base64:`, ≤512 chars (`0` hides) |
+| `announce-url`, `sub-info-button-text`, `sub-info-color` (`blue`/`green`/`red`) | notice link, label, tone |
+| `x-hwid-max-devices-reached: true` | device refused; client shows "device limit reached" (send with an empty 200 or with 403) |
+
+Anything else is ignored.
+
+## 5. Consistency
+
+- All three representations of one refresh must be generated from one immutable snapshot: the bundle halves must equal the standalone answers, and the parallel `multicore-mihomo` / `multicore-xray` answers must match each other (same names, ports, tags).
+- If configs are built on demand, build the pair once and serve both halves from a short cache (e.g. 30 s keyed by subscription id + `x-hwid`).
+- Recommended: `X-Multicore-Revision: <id shared by all representations>`, `Cache-Control: private, no-cache`.
+- Body ≤ 32 MiB per representation. Never log subscription tokens, config bodies or identity headers.
+
+## 6. Checklist
+
+1. `mihomo -t -f mihomo.yaml` passes.
+2. Bridged: `xray run -test -config xray.json` passes; every `socks5 127.0.0.1:P` in Mihomo has an Xray inbound on `127.0.0.1:P` with exactly one rule to an existing outbound.
+3. Names, tags, ports unique.
+4. Bundle is exactly `[string, object]` and equals the standalone answers.
+5. Metadata headers present on every representation.
+
+---
+
+## 7. In front of Remnawave
+
+Stock Remnawave (checked against backend v3.4) can serve the **Mihomo-only** shape by itself: a Mihomo template plus a response rule `user-agent EQUALS multicore-mihomo → MIHOMO` (docs/remnawave.md). It cannot serve the **bridged** shape: its `XRAY_JSON` is always an array with one full config per host, and nothing in the panel links Mihomo names to Xray ports. A bridged setup therefore needs a MultiCore subscription server (adapter) in front of Remnawave that does the following.
+
+### 7.1 Panel setup the adapter relies on
+
+- Tag every host that must go through Xray with a host tag, e.g. `MULTICORE_XRAY` (tags match `^[A-Z0-9_:]+$`, ≤36 chars).
+- Give hosts unique remarks. Remnawave dedupes duplicates per output with a ` ^~2~^` suffix, and the Mihomo and Xray outputs are filtered differently, so duplicates across the two sets would not line up.
+- Response rules (above the default rules), matched on User-Agents only the adapter sends:
+  - `user-agent EQUALS multicore-adapter/mihomo` → `MIHOMO`, `subscriptionTemplate: "MultiCore"`, `excludeHostsByTags: ["MULTICORE_XRAY"]`.
+  - `user-agent EQUALS multicore-adapter/xray` → `XRAY_JSON`, `subscriptionTemplate: "MultiCore-Xray"` (an Xray JSON template without a `remnawave` injector block, with only `direct`/`block` outbounds).
+- Point `SUB_PUBLIC_DOMAIN` (the URL users receive) at the adapter; the adapter talks to the backend at `/api/sub/{shortUuid}`.
+
+### 7.2 Requests to Remnawave
+
+For a MultiCore request on `/…/{shortUuid}` the adapter makes two upstream requests to `GET {backend}/api/sub/{shortUuid}`:
+
+- `User-Agent: multicore-adapter/mihomo` and `User-Agent: multicore-adapter/xray`;
+- forward `x-hwid`, `x-device-os`, `x-ver-os`, `x-device-model` unchanged, so Remnawave's HWID limit counts the real device (both requests register the same device);
+- set `x-forwarded-for: <client IP>` (Remnawave trusts it unconditionally for the user IP), and strip any client-supplied `x-forwarded-for` / `x-remnawave-real-ip`.
+
+### 7.3 Building the answer
+
+1. **Upstream refusal.** If the Mihomo upstream answer is non-2xx, return that status to every MultiCore UA. If it is `200` with an empty body and `x-hwid-max-devices-reached: true`, return exactly that (empty 200 + its headers) to every MultiCore UA.
+2. **Bridged hosts.** Parse the Xray upstream body as a JSON array (Remnawave returns an empty body on a generator error: treat as "no bridges"). Each element is `{...template, outbounds: [<proxy outbound tagged "proxy">, ...template outbounds], remarks: <host remark>}`. A host is bridged when its `remarks` is not a proxy name in the Mihomo answer (the Mihomo answer excluded tagged hosts; hidden hosts are absent from both).
+3. **Xray object.** For bridged host *i* in upstream order:
+   - port `31001 + i`;
+   - outbound = the element's outbound tagged `proxy`, retagged `mc-<i>`; if it references other outbounds of the same element by tag (`proxySettings.tag`, `streamSettings.sockopt.dialerProxy`), copy those too, retagged `mc-<i>-<tag>`, and rewrite the references;
+   - inbound `{tag: <remarks>, listen: "127.0.0.1", port, protocol: "socks", settings: {auth: "noauth", udp: true, ip: "127.0.0.1"}}`;
+   - rule `{type: "field", inboundTag: [<remarks>], outboundTag: "mc-<i>"}`.
+   Result: `{"log":{"loglevel":"warning"},"inbounds":[…],"outbounds":[…bridges, {"tag":"direct","protocol":"freedom"}, {"tag":"block","protocol":"blackhole"}],"routing":{"domainStrategy":"AsIs","rules":[…]}}`. Drop the template's own `inbounds`, `dns` and `routing`.
+4. **Mihomo YAML.** Append one `socks5 127.0.0.1:<port>` proxy named `<remarks>` per bridged host. Add these names to every `proxy-groups` entry that already lists at least one Remnawave proxy by name (the groups the template filled), after the existing proxies. Groups using `include-all` pick them up automatically.
+5. **No bridged hosts.** Serve the Mihomo answer unchanged and answer `multicore-xray` / `multicore-json-massive` with 404 (Mihomo-only shape).
+6. **Serve.**
+   - `multicore-json-massive` → `[<Mihomo YAML string>, <Xray object>]`;
+   - `multicore-mihomo` → the YAML;
+   - `multicore-xray` → the object.
+   Cache the built pair ~30 s per `shortUuid + x-hwid` so the parallel requests get the same snapshot. Copy the Mihomo upstream response's metadata headers (`subscription-userinfo`, `profile-title`, `profile-update-interval`, `support-url`, `profile-web-page-url`, `announce*`, `sub-info-*`, `*-servicelogo`, `content-disposition`, `x-hwid-*`) onto all three answers and add `X-Multicore-Revision`.
+7. **Validate before serving.** Run the checks from section 6. On failure, return 502 rather than a half-built pair.
+
+### 7.4 Everything that is not MultiCore
+
+Any request whose `User-Agent` is not one of the three MultiCore values (other apps, browsers, `/info`, the subscription page) is proxied to Remnawave byte-for-byte, headers included. The adapter never changes what other clients receive.
+
+---
+
+## 8. Worked example (bridged, one native + one Xray host)
+
+Mihomo (excerpt):
+```yaml
+proxies:
+  - { name: "🇸🇪 Sweden", type: vless, server: se.example.com, port: 443, uuid: "…", tls: true, network: tcp, flow: xtls-rprx-vision, servername: www.microsoft.com, reality-opts: { public-key: "…", short-id: "…" }, client-fingerprint: chrome }
+  - { name: "🇳🇱 Netherlands", type: socks5, server: 127.0.0.1, port: 31001, udp: true }
+proxy-groups:
+  - { name: "🌍 VPN", type: select, proxies: ["⚡ Автовыбор", "🇸🇪 Sweden", "🇳🇱 Netherlands"] }
+  - { name: "⚡ Автовыбор", type: url-test, url: "https://cp.cloudflare.com/generate_204", interval: 300, proxies: ["🇸🇪 Sweden", "🇳🇱 Netherlands"] }
+rules:
+  - MATCH,🌍 VPN
+```
+
+Xray:
+```json
+{
+  "log": { "loglevel": "warning" },
+  "inbounds": [
+    { "tag": "🇳🇱 Netherlands", "listen": "127.0.0.1", "port": 31001, "protocol": "socks",
+      "settings": { "auth": "noauth", "udp": true, "ip": "127.0.0.1" } }
+  ],
+  "outbounds": [
+    { "tag": "mc-0", "protocol": "vless", "settings": { "vnext": [] }, "streamSettings": { "network": "xhttp" } },
+    { "tag": "direct", "protocol": "freedom" },
+    { "tag": "block", "protocol": "blackhole" }
+  ],
+  "routing": { "domainStrategy": "AsIs",
+    "rules": [ { "type": "field", "inboundTag": ["🇳🇱 Netherlands"], "outboundTag": "mc-0" } ] }
+}
+```
+
+Bundle for `multicore-json-massive`: `["<the YAML above as one JSON string>", <the object above>]`.
