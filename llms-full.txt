@@ -60,6 +60,7 @@ Native Mihomo proxies and bridges can be mixed in one YAML and in the same group
 - `allow-lan: false`; no LAN-reachable ports.
 - Do not rely on these keys, the client overrides or removes them: `external-controller*`, `secret`, `external-ui*`, `cors`, `external-doh-server`, `global-client-fingerprint`, `store-selected`, `tun.device`. In its no-TUN mode the client also sets `tun.enable`, `mixed-port`, `bind-address`, `allow-lan`.
 - `url-test` groups are shown as "Auto → <current node>"; a top `select` group containing the `url-test` group plus all servers is the recommended layout.
+- Optional group icons: `icon: https://…` on a `proxy-groups` entry (PNG/JPEG/WebP/SVG, ≤512 KiB, no redirects); fetched on refresh and shown in the group tabs and tray.
 - Reference template: docs/remnawave/multicore-mihomo-template.yaml.
 
 ## 4. Headers
@@ -85,6 +86,7 @@ Response headers MultiCore reads (send the same set on all three representations
 | `<vendor>-servicelogo` | https image URL; vendor prefix required (e.g. `myvpn-servicelogo`) |
 | `announce` | plain or `base64:`, ≤512 chars (`0` hides) |
 | `announce-url`, `sub-info-button-text`, `sub-info-color` (`blue`/`green`/`red`) | notice link, label, tone |
+| `dumb-mode` (or `<vendor>-dumb-mode`) | `on`/`off` (also `true`/`false`, `1`/`0`), default off; `on` = the app shows only the first `proxy-groups` entry, no group tabs (home and tray); other groups keep working |
 | `x-hwid-max-devices-reached: true` | device refused; client shows "device limit reached" (send with an empty 200 or with 403) |
 
 Anything else is ignored.
@@ -143,7 +145,7 @@ For a MultiCore request on `/…/{shortUuid}` the adapter makes two upstream req
    - `multicore-json-massive` → `[<Mihomo YAML string>, <Xray object>]`;
    - `multicore-mihomo` → the YAML;
    - `multicore-xray` → the object.
-   Cache the built pair ~30 s per `shortUuid + x-hwid` so the parallel requests get the same snapshot. Copy the Mihomo upstream response's metadata headers (`subscription-userinfo`, `profile-title`, `profile-update-interval`, `support-url`, `profile-web-page-url`, `announce*`, `sub-info-*`, `*-servicelogo`, `content-disposition`, `x-hwid-*`) onto all three answers and add `X-Multicore-Revision`.
+   Cache the built pair ~30 s per `shortUuid + x-hwid` so the parallel requests get the same snapshot. Copy the Mihomo upstream response's metadata headers (`subscription-userinfo`, `profile-title`, `profile-update-interval`, `support-url`, `profile-web-page-url`, `announce*`, `sub-info-*`, `*-servicelogo`, `dumb-mode` / `*-dumb-mode`, `content-disposition`, `x-hwid-*`) onto all three answers and add `X-Multicore-Revision`.
 7. **Validate before serving.** Run the checks from section 6. On failure, return 502 rather than a half-built pair.
 
 ### 7.4 Everything that is not MultiCore

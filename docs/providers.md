@@ -68,6 +68,7 @@ proxies:
 - **Необязательные:** `sniffer`, `rule-providers`, правила `PROCESS-NAME`.
 - **Что клиент перепишет сам:** `external-controller`, `secret`, `external-ui` и имя TUN-устройства. В режиме без TUN он также выключает `tun` и ставит свой `mixed-port` на `127.0.0.1`.
 - **`url-test`-группы** показываются в приложении как «Автовыбор → реальный узел».
+- **Значки групп:** поле `icon:` у группы в `proxy-groups` — HTTPS-ссылка на PNG/JPEG/WebP/SVG. Клиент скачивает значки при обновлении подписки (до 32 штук, без редиректов, до 512 KiB) и показывает их во вкладках групп и в трее; без значка остаётся эмодзи из названия.
 
 Готовый пример — [шаблон для Remnawave](remnawave/multicore-mihomo-template.yaml). Он подходит и без Remnawave: на место меток `# LEAVE THIS LINE!` вставьте свои серверы.
 
@@ -98,6 +99,7 @@ proxies:
 | `announce-url` | Ссылка из анонса |
 | `sub-info-button-text` | Подпись кнопки в анонсе, до 32 символов |
 | `sub-info-color` | Цвет анонса: `blue`, `green` или `red` |
+| `dumb-mode` | `on` — показывать в приложении только первую группу из `proxy-groups`, без вкладок групп (на главной и в трее). Остальные группы продолжают работать. Можно с префиксом: `myvpn-dumb-mode`. Значения `on`/`off`, `true`/`false`, `1`/`0`; по умолчанию `off` |
 | `X-Hwid-Max-Devices-Reached: true` | Приложение покажет «Достигнут лимит устройств» вместо непонятной ошибки |
 
 Совместимые синонимы: `sub-info-text` / `banner-text` для `announce`, `sub-info-button-link` / `banner-button-url` для `announce-url`.
