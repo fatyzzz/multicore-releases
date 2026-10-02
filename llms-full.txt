@@ -87,6 +87,7 @@ Response headers MultiCore reads (send the same set on all three representations
 | `announce` | plain or `base64:`, ≤512 chars (`0` hides) |
 | `announce-url`, `sub-info-button-text`, `sub-info-color` (`blue`/`green`/`red`) | notice link, label, tone |
 | `dumb-mode` (or `<vendor>-dumb-mode`) | `on`/`off` (also `true`/`false`, `1`/`0`), default off; `on` = the app shows only the first `proxy-groups` entry, no group tabs (home and tray); other groups keep working |
+| `app-language` (or `<vendor>-app-language`) | `ru`/`en`, any case; regional tags (`en-US`) count as the base language; other values ignored. The active subscription's value sets the UI language; a language the user picked in Settings always wins. Default: the system language |
 | `x-hwid-max-devices-reached: true` | device refused; client shows "device limit reached" (send with an empty 200 or with 403) |
 
 Anything else is ignored.
@@ -145,7 +146,7 @@ For a MultiCore request on `/…/{shortUuid}` the adapter makes two upstream req
    - `multicore-json-massive` → `[<Mihomo YAML string>, <Xray object>]`;
    - `multicore-mihomo` → the YAML;
    - `multicore-xray` → the object.
-   Cache the built pair ~30 s per `shortUuid + x-hwid` so the parallel requests get the same snapshot. Copy the Mihomo upstream response's metadata headers (`subscription-userinfo`, `profile-title`, `profile-update-interval`, `support-url`, `profile-web-page-url`, `announce*`, `sub-info-*`, `*-servicelogo`, `dumb-mode` / `*-dumb-mode`, `content-disposition`, `x-hwid-*`) onto all three answers and add `X-Multicore-Revision`.
+   Cache the built pair ~30 s per `shortUuid + x-hwid` so the parallel requests get the same snapshot. Copy the Mihomo upstream response's metadata headers (`subscription-userinfo`, `profile-title`, `profile-update-interval`, `support-url`, `profile-web-page-url`, `announce*`, `sub-info-*`, `*-servicelogo`, `dumb-mode` / `*-dumb-mode`, `app-language` / `*-app-language`, `content-disposition`, `x-hwid-*`) onto all three answers and add `X-Multicore-Revision`.
 7. **Validate before serving.** Run the checks from section 6. On failure, return 502 rather than a half-built pair.
 
 ### 7.4 Everything that is not MultiCore

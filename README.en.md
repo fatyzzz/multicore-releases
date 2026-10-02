@@ -37,7 +37,7 @@
 </p>
 
 > [!NOTE]
-> The interface is in Russian for now. Screenshots show the real app.
+> The app speaks English and Russian (Settings → Language; by default it follows your system). Screenshots show the Russian interface.
 
 ## Download
 

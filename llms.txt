@@ -1,8 +1,8 @@
-# MultiCore
+# MULTICORE
 
-> Native VPN client for Windows x64 and Linux x86_64 running Mihomo and Xray side by side. This repository is its public release channel.
+> Native VPN client for Windows (x64, x86, ARM64) and Linux x86_64 running Mihomo and Xray side by side. This repository is its public release channel.
 
-- [Subscription server requirements (full spec)](llms-full.txt): what a subscription server, or an adapter in front of Remnawave, must do to serve MultiCore.
+- [Subscription server requirements (full spec)](llms-full.txt): what a subscription server, or an adapter in front of Remnawave, must do to serve MULTICORE.
 - [Provider docs (RU)](docs/providers.md): the same contract for humans.
 - [Remnawave guide (RU)](docs/remnawave.md): panel setup for the Mihomo-only shape.
-- [How MultiCore works (RU)](docs/how-it-works.md)
+- [How MULTICORE works (RU)](docs/how-it-works.md)
