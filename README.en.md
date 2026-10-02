@@ -31,13 +31,13 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.png">
-    <img src="docs/assets/hero-light.png" width="100%" alt="MULTICORE main window connected through Auto-select to Sweden, with route latencies, next to the tray menu">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark-en.png">
+    <img src="docs/assets/hero-light-en.png" width="100%" alt="MULTICORE main window connected through Auto-select to Sweden, with route latencies, next to the tray menu">
   </picture>
 </p>
 
 > [!NOTE]
-> The app speaks English and Russian (Settings → Language; by default it follows your system). Screenshots show the Russian interface.
+> The app speaks English and Russian (Settings → Language; by default it follows your system). Screenshots show the English interface.
 
 ## Download
 
@@ -91,12 +91,12 @@ The Windows buttons download straight from the [latest release](https://github.c
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/shot-subscriptions.png" alt="Subscription menu with remaining traffic and days for each subscription"></td>
-    <td width="50%"><img src="docs/assets/shot-troubleshoot.png" alt="Troubleshooter listing the problems it found"></td>
+    <td width="50%"><img src="docs/assets/shot-subscriptions-en.png" alt="Subscription menu with remaining traffic and days for each subscription"></td>
+    <td width="50%"><img src="docs/assets/shot-troubleshoot-en.png" alt="Troubleshooter listing the problems it found"></td>
   </tr>
   <tr>
-    <td><img src="docs/assets/shot-status.png" alt="Status page: both cores running, local SOCKS bridges, log"></td>
-    <td><img src="docs/assets/shot-settings.png" alt="Settings: TUN mode, autostart, troubleshooter, updates"></td>
+    <td><img src="docs/assets/shot-status-en.png" alt="Status page: both cores running, local SOCKS bridges, log"></td>
+    <td><img src="docs/assets/shot-settings-en.png" alt="Settings: TUN mode, autostart, troubleshooter, updates"></td>
   </tr>
 </table>
 
