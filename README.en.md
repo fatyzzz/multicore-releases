@@ -208,12 +208,16 @@ The ARM64 build ships since 1.1.3 as a beta: it has not been tested on real ARM 
 
 <br>
 
-MULTICORE checks this repository at startup and once a day. On Windows and in the AppImage it downloads, verifies and installs the update itself (with the service, without any prompt). For deb, rpm and Arch packages it only tells you, and you update with your package manager.
+MULTICORE checks this repository at startup and about once an hour. On Windows and in the AppImage it downloads, verifies and installs the update itself (with the service, without any prompt). For deb, rpm and Arch packages it only tells you, and you update with your package manager.
 
 </details>
 
 ## Core licences and sources
 
 Mihomo is GPL-3.0 and Xray-core is MPL-2.0. Every release includes the exact sources of the bundled cores (`mihomo-source.zip`, `Xray-core-source.zip`); licence texts and `THIRD_PARTY_NOTICES.md` ship inside the package.
+
+## Thanks
+
+Special thanks to [@bolivkazelenayau](https://github.com/bolivkazelenayau) for help with UX/UI.
 
 <p align="center"><sub>This repository is the public release channel for MULTICORE: builds, checksums and docs. The app gets its updates from here.</sub></p>
