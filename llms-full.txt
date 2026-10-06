@@ -92,6 +92,31 @@ Response headers MultiCore reads (send the same set on all three representations
 
 Anything else is ignored.
 
+### 4.1 Headers as leading `#` lines of the body (since 1.1.11)
+
+When the server cannot set response headers (static file, gist, object storage, limited panel), write the same headers as comment lines at the very top of the body (Happ/Hiddify/Clash-family convention):
+
+```yaml
+#profile-title: base64:8J+agCBGTDg=
+#profile-update-interval: 12
+#subscription-userinfo: upload=0; download=123; total=1073741824; expire=1798761600
+#support-url: https://t.me/support
+#profile-web-page-url: https://example.com
+#announce: base64:0J/RgNC40LLQtdGC
+#dumb-mode: on
+#app-language: en
+mixed-port: 7890
+proxies:
+  ...
+```
+
+- Keys: every response header above, same names (case-insensitive, `<vendor>-` prefixes included), formats, sanitizers and limits. Not accepted from the body: `content-disposition`, `x-hwid-max-devices-reached`. Unknown keys ignored.
+- Line: `#name: value`, spaces allowed after `#` and around `:`; `name` = letters, digits, `-`. Other `#` lines and blank lines are skipped. UTF-8 BOM and CRLF are fine.
+- Leading block only: stops at the first line that is neither blank nor `#`, and after 64 lines or 16 KiB. Later `#` lines are plain YAML comments and are not read.
+- Bodies: Mihomo YAML (`multicore-mihomo`), Xray JSON (`multicore-xray`), the `multicore-json-massive` bundle (before its `[`), and the Mihomo YAML string inside the bundle. The block is stripped before parsing, so it never reaches the core configs. JSON that does not start with `#` parses exactly as before; a `#` past the leading block is still invalid JSON.
+- Priority per key, highest first: (1) real HTTP response headers, (2) leading `#` lines of the `multicore-json-massive` bundle, (3) leading `#` lines of the Mihomo YAML, (4) leading `#` lines of the Xray JSON. A lower source only fills keys no higher source sent (YAML `#app-language: ru` + Xray `#app-language: en` → `ru`; an `app-language` header beats both). A header that was sent owns its key even if its value is invalid.
+- Same trust as headers: no extra trust, same sanitizers, never logged.
+
 ## 5. Consistency
 
 - All three representations of one refresh must be generated from one immutable snapshot: the bundle halves must equal the standalone answers, and the parallel `multicore-mihomo` / `multicore-xray` answers must match each other (same names, ports, tags).
